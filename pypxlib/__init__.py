@@ -50,7 +50,7 @@ class Table(object):
 			num_fields = self.pxdoc.contents.px_head.contents.px_numfields
 			for i in range(num_fields):
 				field = PX_get_field(self.pxdoc, i).contents
-				field_name = field.px_fname.data.decode(self.PX_ENCODING)
+				field_name = field.px_fname.data.decode(self.encoding,'ignore')
 				self._fields_cached[field_name] = \
 					Field.from_type(ord(field.px_ftype), i, self.encoding)
 		return self._fields_cached
