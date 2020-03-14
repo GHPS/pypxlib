@@ -25,7 +25,7 @@ class Table(object):
 		# Python 3:
 		__next__ = next
 
-	def __init__(self, file_path, encoding='cp850', blob_file_path=None):
+	def __init__(self, file_path, encoding='cp850', blob_file_path=None, ignore_decode_error=False):
 		if not blob_file_path:
 			possible_blob_file = \
 				file_path.replace('.db', '.mb').replace('.DB', '.MB')
@@ -33,6 +33,7 @@ class Table(object):
 				blob_file_path = possible_blob_file
 		self.file_path = file_path
 		self.encoding = encoding
+		self.encoding_error="ignore" if ignore_decode_error else "strict"
 		self.pxdoc = PX_new()
 		if PX_open_file(self.pxdoc, file_path.encode(self.PX_ENCODING)) != 0:
 			raise PXError('Could not open file %s.' % self.file_path)
@@ -50,7 +51,11 @@ class Table(object):
 			num_fields = self.pxdoc.contents.px_head.contents.px_numfields
 			for i in range(num_fields):
 				field = PX_get_field(self.pxdoc, i).contents
-				field_name = field.px_fname.data.decode(self.encoding,'ignore')
+				try:
+					field_name = field.px_fname.data.decode(self.encoding, self.encoding_error)
+				except UnicodeDecodeError:
+					raise PXError('Error converting field name "'+repr(field.px_fname)+
+						      '" (Hint: Use "ignore_decode_error=True" to skip offending character during import or rename field in Paradox)') from None
 				self._fields_cached[field_name] = \
 					Field.from_type(ord(field.px_ftype), i, self.encoding)
 		return self._fields_cached
